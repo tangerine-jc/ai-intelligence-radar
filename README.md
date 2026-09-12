@@ -1,5 +1,7 @@
 # AI Intelligence Radar
 
+**语言：** [简体中文](README.md) | [English](README_EN.md)
+
 一个面向新闻聚合、智能筛选、播客生成和飞书推送的 Python 项目。系统从多个公开新闻源抓取 URL，提取正文，使用大语言模型完成筛选和内容生成，再按群组或个人兴趣分发。
 
 ## 功能
@@ -17,6 +19,7 @@
 ```text
 .
 ├── main.py
+├── README_EN.md
 ├── pyproject.toml
 ├── requirements.txt
 ├── requirements-dev.txt
