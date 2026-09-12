@@ -5,12 +5,13 @@
 """
 
 import asyncio
-import requests
+import json
 import logging
 import os
-import json
-from typing import Dict, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, Optional
+
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -64,9 +65,7 @@ class BackupNewsCrawler:
 
 请直接生成新闻内容："""
 
-    async def crawl_news_content(
-        self, title: str, original_url: str = ""
-    ) -> Dict[str, Any]:
+    async def crawl_news_content(self, title: str, original_url: str = "") -> Dict[str, Any]:
         """
         使用备用方法爬取新闻内容
 

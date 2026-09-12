@@ -17,6 +17,12 @@
 ```text
 .
 ├── main.py
+├── pyproject.toml
+├── requirements.txt
+├── requirements-dev.txt
+├── SECURITY.md
+├── .github/
+│   └── workflows/ci.yml
 ├── config/
 │   └── users.example.json
 ├── docs/
@@ -25,6 +31,8 @@
 ├── prompts/
 ├── scripts/
 │   └── list_feishu_groups.py
+├── tests/
+│   └── test_smoke.py
 ├── src/
 │   ├── application.py
 │   ├── config.py
@@ -34,7 +42,6 @@
 │       ├── audio/
 │       ├── feishu_bot.py
 │       └── feishu_user_service.py
-├── requirements.txt
 └── .env.example
 ```
 
@@ -68,6 +75,30 @@ cp config/users.example.json config/users.json
 - `config/users.json`：个人用户及兴趣配置，该文件已被 Git 忽略
 
 详细字段说明见 [docs/configuration.md](docs/configuration.md)。
+
+## 开发与质量检查
+
+安装开发工具：
+
+```bash
+make install
+```
+
+运行静态检查、格式检查和单元测试：
+
+```bash
+make check
+```
+
+也可以分别执行：
+
+```bash
+ruff check src tests main.py scripts
+ruff format --check src tests main.py scripts
+python -m unittest discover -s tests -v
+```
+
+CI 会在 Python 3.10 和 3.12 上自动执行上述检查。
 
 ## 运行
 
@@ -114,6 +145,7 @@ flowchart LR
 - 不要提交 `.env`、`config/users.json`、数据库或运行日志
 - 凭据一旦出现在公开历史中，应立即吊销并轮换
 - 示例文件只使用 `example.com` 和匿名占位符
+- 安全问题报告方式见 [SECURITY.md](SECURITY.md)
 
 ## 许可证
 

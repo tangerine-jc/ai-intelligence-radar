@@ -5,20 +5,20 @@
 """
 
 import asyncio
-import requests
 import logging
-import sqlite3
-from typing import List, Dict, Any, Optional
-from urllib.parse import urljoin, urlparse
-from bs4 import BeautifulSoup
-from datetime import datetime
 import os
+import sqlite3
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+from urllib.parse import urljoin, urlparse
+
+import requests
+from bs4 import BeautifulSoup
+
 from ..config import Config
 
 # 配置日志
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -81,9 +81,7 @@ class NewsURLCrawler:
             cursor.execute(
                 "CREATE INDEX IF NOT EXISTS idx_source_domain ON news_urls(source_domain)"
             )
-            cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_processed ON news_urls(processed)"
-            )
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_processed ON news_urls(processed)")
             cursor.execute(
                 "CREATE INDEX IF NOT EXISTS idx_crawl_time ON site_crawl_log(crawl_time)"
             )
@@ -96,9 +94,7 @@ class NewsURLCrawler:
             logger.error(f"❌ 数据库初始化失败: {str(e)}")
             raise
 
-    async def crawl_news_urls_from_site(
-        self, site_info: Dict[str, str]
-    ) -> List[Dict[str, Any]]:
+    async def crawl_news_urls_from_site(self, site_info: Dict[str, str]) -> List[Dict[str, Any]]:
         """
         从单个新闻网站爬取所有新闻URL
 
@@ -121,9 +117,7 @@ class NewsURLCrawler:
                 return []
 
             # 2. 使用大模型分析并提取新闻URL
-            news_urls = await self._extract_news_urls_with_ai(
-                site_url, html_content, site_info
-            )
+            news_urls = await self._extract_news_urls_with_ai(site_url, html_content, site_info)
 
             # 3. 存储到数据库
             if news_urls:
@@ -232,9 +226,7 @@ class NewsURLCrawler:
                     if parent:
                         parent_text = parent.get_text(strip=True)[:200]
 
-                    extracted_content.append(
-                        f"[链接: {text} -> {href}] 上下文: {parent_text}"
-                    )
+                    extracted_content.append(f"[链接: {text} -> {href}] 上下文: {parent_text}")
 
             # 2. 提取标题元素
             for tag in soup.find_all(["h1", "h2", "h3", "h4", "h5", "h6"]):
@@ -243,9 +235,7 @@ class NewsURLCrawler:
                     extracted_content.append(f"[标题: {text}]")
 
             # 3. 提取文章相关元素
-            for element in soup.find_all(
-                ["article", ".article", ".news-item", ".post", ".story"]
-            ):
+            for element in soup.find_all(["article", ".article", ".news-item", ".post", ".story"]):
                 text = element.get_text(strip=True)
                 if text and len(text) > 20:
                     extracted_content.append(f"[文章区域: {text[:300]}]")
@@ -256,17 +246,13 @@ class NewsURLCrawler:
             if len(combined_content) > 20000:
                 combined_content = combined_content[:20000] + "\n\n...(内容过长已截取)"
 
-            return (
-                combined_content if combined_content.strip() else html_content[:10000]
-            )
+            return combined_content if combined_content.strip() else html_content[:10000]
 
         except Exception as e:
             logger.warning(f"HTML预处理失败: {str(e)}")
             return html_content[:10000] if len(html_content) > 10000 else html_content
 
-    def _build_url_extraction_prompt(
-        self, site_url: str, site_info: Dict[str, str]
-    ) -> str:
+    def _build_url_extraction_prompt(self, site_url: str, site_info: Dict[str, str]) -> str:
         """构建URL提取的提示词"""
         return f"""你是一位顶级的【Web结构分析与内容提取专家】，能够洞察任何网站的文章URL命名规律。你的任务不再是寻找一种固定模式的链接，而是要自主分析并识别出目标网站用于"新闻文章"的独特URL结构，然后进行详尽的提取。
 
@@ -329,9 +315,7 @@ URL的"深度"是怎样的？（有多少个斜杠/）
                         absolute_url = urljoin(site_url, url)
 
                         # 修正URL格式
-                        corrected_url = self._correct_url_format(
-                            absolute_url, site_info
-                        )
+                        corrected_url = self._correct_url_format(absolute_url, site_info)
 
                         # 提取标题（如果有的话）
                         title = self._extract_title_from_url(corrected_url, site_info)
@@ -410,9 +394,7 @@ URL的"深度"是怎样的？（有多少个斜杠/）
         except:
             return ""
 
-    def _save_urls_to_db(
-        self, urls: List[Dict[str, Any]], site_info: Dict[str, str]
-    ) -> int:
+    def _save_urls_to_db(self, urls: List[Dict[str, Any]], site_info: Dict[str, str]) -> int:
         """将URL列表保存到数据库"""
         try:
             conn = sqlite3.connect(self.db_path)
@@ -424,9 +406,7 @@ URL的"深度"是怎样的？（有多少个斜杠/）
             for url_data in urls:
                 try:
                     # 检查URL是否已存在
-                    cursor.execute(
-                        "SELECT id FROM news_urls WHERE url = ?", (url_data["url"],)
-                    )
+                    cursor.execute("SELECT id FROM news_urls WHERE url = ?", (url_data["url"],))
                     if cursor.fetchone():
                         skipped_count += 1
                         continue
@@ -457,9 +437,7 @@ URL的"深度"是怎样的？（有多少个斜杠/）
             conn.commit()
             conn.close()
 
-            logger.info(
-                f"💾 数据库保存完成: 新增 {saved_count} 个，跳过 {skipped_count} 个重复URL"
-            )
+            logger.info(f"💾 数据库保存完成: 新增 {saved_count} 个，跳过 {skipped_count} 个重复URL")
             return saved_count
 
         except Exception as e:

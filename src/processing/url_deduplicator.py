@@ -3,12 +3,12 @@ URL去重数据库管理类
 用于管理已处理的URL，避免重复处理相同的新闻链接
 """
 
-import os
-import json
 import hashlib
-from typing import Set, List, Dict, Any
-from datetime import datetime, timedelta
+import json
 import logging
+import os
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Set
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 logger = logging.getLogger(__name__)
@@ -194,9 +194,7 @@ class URLDeduplicator:
         logger.info(f"从 {len(urls)} 个URL中过滤出 {len(new_urls)} 个新URL")
         return new_urls
 
-    def process_and_mark_urls(
-        self, urls: List[str], metadata: Dict[str, Any] = None
-    ) -> List[str]:
+    def process_and_mark_urls(self, urls: List[str], metadata: Dict[str, Any] = None) -> List[str]:
         """
         处理URL列表并标记为已处理
 
@@ -221,9 +219,7 @@ class URLDeduplicator:
 
     def get_processed_urls(self) -> List[str]:
         """获取所有已处理的URL列表"""
-        return [
-            metadata.get("original_url", "") for metadata in self.url_metadata.values()
-        ]
+        return [metadata.get("original_url", "") for metadata in self.url_metadata.values()]
 
     def cleanup_old_urls(self, days: int = 30):
         """
@@ -239,9 +235,7 @@ class URLDeduplicator:
             processed_at = metadata.get("processed_at", "")
             if processed_at:
                 try:
-                    processed_date = datetime.fromisoformat(
-                        processed_at.replace("Z", "+00:00")
-                    )
+                    processed_date = datetime.fromisoformat(processed_at.replace("Z", "+00:00"))
                     if processed_date < cutoff_date:
                         old_urls.append(url_hash)
                 except:

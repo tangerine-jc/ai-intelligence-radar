@@ -593,9 +593,7 @@ class Config:
             "BLUE_CONVERSE_BASE_URL",
             "https://ai.blue-converse.com/api",
         ).rstrip("/")
-        self.BLUE_CONVERSE_API_URL = (
-            f"{self.BLUE_CONVERSE_BASE_URL}/v1/chat/completions"
-        )
+        self.BLUE_CONVERSE_API_URL = f"{self.BLUE_CONVERSE_BASE_URL}/v1/chat/completions"
         self.BLUE_CONVERSE_APP_ID = os.getenv("BLUE_CONVERSE_APP_ID")
         self.BLUE_CONVERSE_CHAT_ID = os.getenv("BLUE_CONVERSE_CHAT_ID", "default")
 
@@ -730,9 +728,7 @@ class FeishuConfig:
         print("=" * 40)
         print(f"APP_ID: {self.APP_ID}")
         print("TOKEN: configured")
-        print(
-            f"已配置群组: {len(self.get_configured_groups())}/{len(self.GROUP_CHAT_IDS)}"
-        )
+        print(f"已配置群组: {len(self.get_configured_groups())}/{len(self.GROUP_CHAT_IDS)}")
 
         for group_name, chat_id in self.GROUP_CHAT_IDS.items():
             status = "✅ 已配置" if chat_id and chat_id != "oc_xxx" else "❌ 未配置"

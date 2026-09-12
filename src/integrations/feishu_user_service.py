@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Feishu user lookup and direct-message helpers."""
 
-import os
-import requests
 import json
+import os
+
+import requests
 from dotenv import load_dotenv
 
 # 加载环境变量
@@ -134,9 +135,7 @@ def send_message_to_user(user_info, message_content):
 
     if not receive_id:
         print("❌ 无法获取有效的receive_id")
-        print(
-            f"   可能原因: 用户邮箱 {user_info.get('email', 'N/A')} 在飞书工作区中不存在"
-        )
+        print(f"   可能原因: 用户邮箱 {user_info.get('email', 'N/A')} 在飞书工作区中不存在")
         print("   解决方案: 请确认用户已加入飞书工作区，或检查邮箱地址是否正确")
         return False
 
@@ -152,9 +151,7 @@ def send_message_to_user(user_info, message_content):
         print(f"📝 发送消息内容: {message_content[:50]}...")
         print(f"🎯 目标用户: {user_info.get('email', 'N/A')}")
 
-        response = requests.post(
-            url, headers=headers, params=params, json=payload, timeout=10
-        )
+        response = requests.post(url, headers=headers, params=params, json=payload, timeout=10)
 
         if response.status_code == 200:
             result = response.json()

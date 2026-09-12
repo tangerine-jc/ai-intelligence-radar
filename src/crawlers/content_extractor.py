@@ -8,17 +8,17 @@ import asyncio
 import logging
 import os
 import sqlite3
-from datetime import datetime, timezone, timedelta
-from typing import List, Dict, Any
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List
+
 import requests
 from bs4 import BeautifulSoup
+
 from ..config import Config
 from .backup_crawler import BackupNewsCrawler
 
 # 配置日志
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -109,9 +109,7 @@ class NewsContentExtractor:
             if content_cursor.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name='news_content'"
             ).fetchone():
-                content_cursor.execute(
-                    "SELECT url FROM news_content WHERE status = 'completed'"
-                )
+                content_cursor.execute("SELECT url FROM news_content WHERE status = 'completed'")
                 processed_urls = set(row[0] for row in content_cursor.fetchall())
 
             content_conn.close()
@@ -141,9 +139,7 @@ class NewsContentExtractor:
             logger.error(f"❌ 获取待处理URL失败: {str(e)}")
             return []
 
-    async def extract_content_from_url(
-        self, url_info: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def extract_content_from_url(self, url_info: Dict[str, Any]) -> Dict[str, Any]:
         """从单个URL提取新闻内容"""
         url = url_info["url"]
         logger.info(f"🔍 开始提取内容: {url}")
@@ -193,9 +189,7 @@ class NewsContentExtractor:
             # 检查是否为爬取失败，尝试备用爬取
             if self.backup_crawler.is_failed_crawl_detected(error_msg):
                 logger.info(f"🔄 检测到爬取失败，启动备用爬取: {url}")
-                return await self._try_backup_crawl(
-                    url_info.get("title", ""), url, url_info
-                )
+                return await self._try_backup_crawl(url_info.get("title", ""), url, url_info)
 
             return {
                 "url": url,
@@ -218,9 +212,7 @@ class NewsContentExtractor:
 
             if backup_result["status"] == "completed" and backup_result["content"]:
                 # 备用爬取成功，生成摘要
-                summary = await self._generate_summary(
-                    title, backup_result["content"], url_info
-                )
+                summary = await self._generate_summary(title, backup_result["content"], url_info)
                 translated_title = self._extract_translated_title(summary, title)
 
                 return {
@@ -370,9 +362,7 @@ class NewsContentExtractor:
 
         return ""
 
-    async def _generate_summary(
-        self, title: str, content: str, url_info: Dict[str, Any]
-    ) -> str:
+    async def _generate_summary(self, title: str, content: str, url_info: Dict[str, Any]) -> str:
         """使用大模型生成新闻概括"""
         try:
             # 构建提示词
@@ -387,9 +377,7 @@ class NewsContentExtractor:
             logger.error(f"❌ 生成概括失败: {str(e)}")
             return "概括生成失败"
 
-    def _build_summary_prompt(
-        self, title: str, content: str, url_info: Dict[str, Any]
-    ) -> str:
+    def _build_summary_prompt(self, title: str, content: str, url_info: Dict[str, Any]) -> str:
         """构建概括提示词"""
         # 截取内容前2000字符用于概括
         content_preview = content[:2000] + "..." if len(content) > 2000 else content
@@ -468,11 +456,7 @@ class NewsContentExtractor:
                     if response.status == 200:
                         result = await response.json()
                         # 解析Blue Converse API响应
-                        if (
-                            "choices" in result
-                            and result["choices"]
-                            and len(result["choices"]) > 0
-                        ):
+                        if "choices" in result and result["choices"] and len(result["choices"]) > 0:
                             choice = result["choices"][0]
                             if "message" in choice and "content" in choice["message"]:
                                 return choice["message"]["content"].strip()

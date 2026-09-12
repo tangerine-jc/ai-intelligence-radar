@@ -5,13 +5,13 @@
 实现真正的隔日去重机制
 """
 
-import sqlite3
+import hashlib
 import json
 import logging
-from typing import List, Dict, Any
-from datetime import datetime, timedelta
-import hashlib
 import re
+import sqlite3
+from datetime import datetime, timedelta
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -62,16 +62,10 @@ class NewsDeduplicator:
             """)
 
             # 创建索引
-            cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_news_id ON pushed_news(news_id)"
-            )
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_news_id ON pushed_news(news_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_url ON pushed_news(url)")
-            cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_group_name ON pushed_news(group_name)"
-            )
-            cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_pushed_at ON pushed_news(pushed_at)"
-            )
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_group_name ON pushed_news(group_name)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_pushed_at ON pushed_news(pushed_at)")
             cursor.execute(
                 "CREATE INDEX IF NOT EXISTS idx_content_hash ON news_content_hashes(content_hash)"
             )
@@ -411,21 +405,15 @@ class NewsDeduplicator:
             cutoff_date = (datetime.now() - timedelta(days=days)).isoformat()
 
             # 删除旧的推送记录
-            cursor.execute(
-                "DELETE FROM pushed_news WHERE pushed_at < ?", (cutoff_date,)
-            )
+            cursor.execute("DELETE FROM pushed_news WHERE pushed_at < ?", (cutoff_date,))
             pushed_deleted = cursor.rowcount
 
             # 删除旧的内容哈希记录
-            cursor.execute(
-                "DELETE FROM news_content_hashes WHERE created_at < ?", (cutoff_date,)
-            )
+            cursor.execute("DELETE FROM news_content_hashes WHERE created_at < ?", (cutoff_date,))
             hash_deleted = cursor.rowcount
 
             self.conn.commit()
-            logger.info(
-                f"🧹 清理完成: 删除 {pushed_deleted} 条推送记录，{hash_deleted} 条哈希记录"
-            )
+            logger.info(f"🧹 清理完成: 删除 {pushed_deleted} 条推送记录，{hash_deleted} 条哈希记录")
 
         except Exception as e:
             logger.error(f"❌ 清理旧记录失败: {str(e)}")

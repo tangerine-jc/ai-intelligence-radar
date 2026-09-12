@@ -4,11 +4,12 @@ Minimax TTS API集成
 提供文本转语音功能
 """
 
-import aiohttp
 import json
-import os
-from typing import Dict, Any, Optional, List
 import logging
+import os
+from typing import Any, Dict, List, Optional
+
+import aiohttp
 
 logger = logging.getLogger(__name__)
 
@@ -107,9 +108,7 @@ class MinimaxTTS:
             }
 
             logger.info(f"Minimax TTS请求: {url}")
-            logger.info(
-                f"请求数据: {json.dumps(payload, ensure_ascii=False, indent=2)}"
-            )
+            logger.info(f"请求数据: {json.dumps(payload, ensure_ascii=False, indent=2)}")
 
             # 发送请求
             async with aiohttp.ClientSession() as session:
@@ -151,9 +150,7 @@ class MinimaxTTS:
                                     f.write(audio_bytes)
 
                                 file_size = os.path.getsize(save_path)
-                                logger.info(
-                                    f"Minimax音频生成成功: {save_path} ({file_size} 字节)"
-                                )
+                                logger.info(f"Minimax音频生成成功: {save_path} ({file_size} 字节)")
                                 return True
                             else:
                                 logger.error("Minimax响应中无音频数据")
@@ -166,9 +163,7 @@ class MinimaxTTS:
                             return False
                     else:
                         error_text = await response.text()
-                        logger.error(
-                            f"Minimax TTS HTTP错误 {response.status}: {error_text}"
-                        )
+                        logger.error(f"Minimax TTS HTTP错误 {response.status}: {error_text}")
                         return False
 
         except Exception as e:

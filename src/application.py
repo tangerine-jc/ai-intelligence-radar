@@ -2,16 +2,16 @@
 """Application orchestration for the AI intelligence radar."""
 
 import asyncio
-import os
-import sys
 import json
 import logging
-import sqlite3
+import os
 import re
+import sqlite3
+import sys
 from datetime import datetime
 from pathlib import Path
+from typing import Any, Dict, List
 from urllib.parse import urlparse
-from typing import List, Dict, Any
 
 from .config import Config
 from .crawlers.content_extractor import NewsContentExtractor
@@ -51,14 +51,10 @@ class IntelligenceRadarApp:
         self.content_extractor = NewsContentExtractor(self.config)
         self.optimized_processor = OptimizedNewsProcessor(self.config)
         self.feishu_bot = FeishuPodcastNewsBot()
-        self.deduplicator = NewsDeduplicator(
-            str(self.config.DATA_DIR / "news_deduplication.db")
-        )
+        self.deduplicator = NewsDeduplicator(str(self.config.DATA_DIR / "news_deduplication.db"))
 
         # 创建输出目录
-        self.output_dir = (
-            PROJECT_ROOT / "data" / f"run_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        )
+        self.output_dir = PROJECT_ROOT / "data" / f"run_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         (self.output_dir / "summary").mkdir(parents=True, exist_ok=True)
 
         # 统计信息
@@ -78,9 +74,7 @@ class IntelligenceRadarApp:
     async def run(self):
         """运行主程序"""
         print("🚀 智能娱乐情报雷达系统 v3 启动")
-        print(
-            f"📅 {self.stats['start_time'].strftime('%Y-%m-%d %H:%M:%S')} | 📁 {self.output_dir}"
-        )
+        print(f"📅 {self.stats['start_time'].strftime('%Y-%m-%d %H:%M:%S')} | 📁 {self.output_dir}")
 
         # 清理旧的去重记录（保留30天）
         try:
@@ -198,9 +192,7 @@ class IntelligenceRadarApp:
 
         try:
             # 获取待处理的URL
-            pending_urls = self.content_extractor.get_pending_urls(
-                limit=500
-            )  # 增加处理数量
+            pending_urls = self.content_extractor.get_pending_urls(limit=500)  # 增加处理数量
             print(f"📋 处理 {len(pending_urls)} 个URL...")
 
             success_count = 0
@@ -375,9 +367,7 @@ class IntelligenceRadarApp:
 
             # 预过滤：过滤掉无意义的标题
             filtered_news_items = self._prefilter_news_items(all_news_items)
-            print(
-                f"🔍 {user['name']}: 预过滤后剩余 {len(filtered_news_items)} 个有效新闻标题"
-            )
+            print(f"🔍 {user['name']}: 预过滤后剩余 {len(filtered_news_items)} 个有效新闻标题")
 
             if not filtered_news_items:
                 print(f"❌ {user['name']}: 预过滤后无有效新闻")
@@ -390,13 +380,9 @@ class IntelligenceRadarApp:
             for i in range(0, len(filtered_news_items), batch_size):
                 batch_items = filtered_news_items[i : i + batch_size]
                 batch_num = i // batch_size + 1
-                total_batches = (
-                    len(filtered_news_items) + batch_size - 1
-                ) // batch_size
+                total_batches = (len(filtered_news_items) + batch_size - 1) // batch_size
 
-                if (
-                    batch_num % 2 == 0 or batch_num == total_batches
-                ):  # 每2批显示一次进度
+                if batch_num % 2 == 0 or batch_num == total_batches:  # 每2批显示一次进度
                     print(f"📦 {user['name']}: 处理第 {batch_num}/{total_batches} 批")
 
                 # 构建当前批次的新闻标题和URL列表
@@ -407,9 +393,7 @@ class IntelligenceRadarApp:
                     )
 
                 # 构建prompt
-                prompt_template = self._load_prompt_template(
-                    "prompts/personal_news_anchor.txt"
-                )
+                prompt_template = self._load_prompt_template("prompts/personal_news_anchor.txt")
                 replacements = {
                     "姓名": user["name"],
                     "邮箱": user["email"],
@@ -424,9 +408,7 @@ class IntelligenceRadarApp:
                 )
 
                 # 调用LLM筛选当前批次
-                batch_selected_titles = await self._call_llm_for_personal_scoring(
-                    prompt, user
-                )
+                batch_selected_titles = await self._call_llm_for_personal_scoring(prompt, user)
 
                 if batch_selected_titles:
                     # 现在batch_selected_titles包含的是URL，直接匹配
@@ -457,9 +439,7 @@ class IntelligenceRadarApp:
                 print(f"❌ {user['name']}: 第一阶段未筛选出任何相关新闻")
                 return []
 
-            print(
-                f"✅ {user['name']}: 第一阶段共筛选出 {len(first_stage_selected)} 个相关新闻"
-            )
+            print(f"✅ {user['name']}: 第一阶段共筛选出 {len(first_stage_selected)} 个相关新闻")
 
             # 多阶段筛选：根据数量决定筛选策略
             return await self._multi_stage_filtering(first_stage_selected, user)
@@ -593,9 +573,7 @@ class IntelligenceRadarApp:
 
         try:
             # 创建标题摘要
-            titles_summary_path = await self.optimized_processor.create_titles_summary(
-                summary_file
-            )
+            titles_summary_path = await self.optimized_processor.create_titles_summary(summary_file)
             print(f"✅ 标题摘要已创建: {titles_summary_path}")
 
             # 处理每个个人用户
@@ -607,9 +585,7 @@ class IntelligenceRadarApp:
                 try:
                     # 设置用户处理超时
                     podcast_content, matched_news = await asyncio.wait_for(
-                        self._process_personal_user_news(
-                            user, titles_summary_path, summary_file
-                        ),
+                        self._process_personal_user_news(user, titles_summary_path, summary_file),
                         timeout=120,
                     )
 
@@ -692,9 +668,7 @@ class IntelligenceRadarApp:
             result = result.replace(f"[{placeholder}]", str(value))
         return result
 
-    async def _process_personal_user_news(
-        self, user, titles_summary_path, summary_file
-    ):
+    async def _process_personal_user_news(self, user, titles_summary_path, summary_file):
         """处理个人用户新闻筛选和播客生成"""
         try:
             # 使用个人新闻筛选prompt
@@ -718,9 +692,7 @@ class IntelligenceRadarApp:
                 "关注领域": user["interests"],
                 "关键词列表": "、".join(user["keywords"]),
             }
-            personalized_prompt = self._replace_placeholders(
-                prompt_template, replacements
-            )
+            personalized_prompt = self._replace_placeholders(prompt_template, replacements)
 
             # 构建筛选prompt
             titles_text = "\n".join(
@@ -739,18 +711,14 @@ class IntelligenceRadarApp:
                 return None, []
 
             # 根据筛选的标题查找完整新闻
-            matched_news = await self._find_news_by_titles(
-                selected_titles, summary_file
-            )
+            matched_news = await self._find_news_by_titles(selected_titles, summary_file)
 
             if not matched_news:
                 logger.warning(f"⚠️ {user['name']}: 未找到匹配的完整新闻")
                 return None, []
 
             # 生成播客内容
-            podcast_content = await self._generate_personal_podcast_content(
-                user, matched_news
-            )
+            podcast_content = await self._generate_personal_podcast_content(user, matched_news)
 
             return podcast_content, matched_news
 
@@ -801,15 +769,11 @@ class IntelligenceRadarApp:
                         if response.status == 200:
                             result = await response.json()
                             content = (
-                                result.get("choices", [{}])[0]
-                                .get("message", {})
-                                .get("content", "")
+                                result.get("choices", [{}])[0].get("message", {}).get("content", "")
                             )
 
                             # 解析选中的标题
-                            selected_titles = self._parse_personal_anchor_response(
-                                content
-                            )
+                            selected_titles = self._parse_personal_anchor_response(content)
                             logger.info(
                                 f"✅ {user['name']}: 筛选出 {len(selected_titles)} 个相关标题"
                             )
@@ -825,9 +789,7 @@ class IntelligenceRadarApp:
                             return []
 
             except asyncio.TimeoutError:
-                logger.error(
-                    f"⏰ {user['name']}: LLM调用超时 (尝试 {attempt + 1}/{max_retries})"
-                )
+                logger.error(f"⏰ {user['name']}: LLM调用超时 (尝试 {attempt + 1}/{max_retries})")
                 if attempt < max_retries - 1:
                     # 等待重试，不显示详细日志
                     await asyncio.sleep(retry_delay)
@@ -852,10 +814,7 @@ class IntelligenceRadarApp:
                 line = line.strip()
                 # 处理新闻URL行
                 if line and (
-                    "新闻URL：" in line
-                    or "新闻URL:" in line
-                    or "URL：" in line
-                    or "URL:" in line
+                    "新闻URL：" in line or "新闻URL:" in line or "URL：" in line or "URL:" in line
                 ):
                     # 提取URL
                     if "新闻URL：" in line:
@@ -908,9 +867,7 @@ class IntelligenceRadarApp:
             # 构建当前阶段的prompt
             stage_titles = []
             for i, item in enumerate(news_items, 1):
-                stage_titles.append(
-                    f"{i}. 标题：{item['title']}\n   URL：{item['url']}"
-                )
+                stage_titles.append(f"{i}. 标题：{item['title']}\n   URL：{item['url']}")
 
             # 根据阶段调整筛选数量
             if stage == 2:
@@ -921,9 +878,7 @@ class IntelligenceRadarApp:
                 target_count = "15-30条"
 
             # 加载prompt模板
-            prompt_template = self._load_prompt_template(
-                "prompts/personal_stage_filtering.txt"
-            )
+            prompt_template = self._load_prompt_template("prompts/personal_stage_filtering.txt")
 
             # 替换占位符
             replacements = {
@@ -936,12 +891,12 @@ class IntelligenceRadarApp:
             stage_prompt = self._replace_placeholders(prompt_template, replacements)
 
             # 添加新闻列表
-            stage_prompt += f"\n\n## 已筛选的新闻列表 (第{stage - 1}阶段)\n{chr(10).join(stage_titles)}"
+            stage_prompt += (
+                f"\n\n## 已筛选的新闻列表 (第{stage - 1}阶段)\n{chr(10).join(stage_titles)}"
+            )
 
             # 调用LLM进行当前阶段筛选
-            selected_urls = await self._call_llm_for_personal_scoring(
-                stage_prompt, user
-            )
+            selected_urls = await self._call_llm_for_personal_scoring(stage_prompt, user)
 
             if not selected_urls:
                 print(
@@ -957,9 +912,7 @@ class IntelligenceRadarApp:
                         matched_items.append(item)
                         break
 
-            print(
-                f"✅ {user['name']}: 第{stage - 1}阶段筛选出 {len(matched_items)} 个相关新闻"
-            )
+            print(f"✅ {user['name']}: 第{stage - 1}阶段筛选出 {len(matched_items)} 个相关新闻")
 
             # 如果结果仍然过多，递归调用下一阶段
             if len(matched_items) > 100 and stage < 5:  # 最多5个阶段
@@ -975,9 +928,7 @@ class IntelligenceRadarApp:
     async def _batch_filtering_for_user(self, news_items, user, stage):
         """个人分批筛选机制"""
         try:
-            print(
-                f"📦 {user['name']}: 开始第{stage - 1}阶段分批筛选，共 {len(news_items)} 个新闻"
-            )
+            print(f"📦 {user['name']}: 开始第{stage - 1}阶段分批筛选，共 {len(news_items)} 个新闻")
 
             # 分批处理
             batch_size = 100  # 每批100个URL
@@ -1006,9 +957,7 @@ class IntelligenceRadarApp:
                 )
 
                 # 调用LLM筛选当前批次
-                batch_selected_titles = await self._call_llm_for_personal_scoring(
-                    prompt, user
-                )
+                batch_selected_titles = await self._call_llm_for_personal_scoring(prompt, user)
 
                 if batch_selected_titles:
                     # 匹配选中的URL
@@ -1029,18 +978,14 @@ class IntelligenceRadarApp:
                         f"✅ {user['name']}: 第{stage - 1}阶段第 {batch_num} 批筛选出 {len(batch_selected_titles)} 个相关新闻"
                     )
                 else:
-                    print(
-                        f"⚠️ {user['name']}: 第{stage - 1}阶段第 {batch_num} 批未筛选出相关新闻"
-                    )
+                    print(f"⚠️ {user['name']}: 第{stage - 1}阶段第 {batch_num} 批未筛选出相关新闻")
 
                 # 批次间延迟
                 if i + batch_size < len(news_items):
                     await asyncio.sleep(2)
 
             if not stage_selected:
-                print(
-                    f"❌ {user['name']}: 第{stage - 1}阶段分批筛选未筛选出任何相关新闻"
-                )
+                print(f"❌ {user['name']}: 第{stage - 1}阶段分批筛选未筛选出任何相关新闻")
                 return news_items[:10]
 
             print(
@@ -1049,9 +994,7 @@ class IntelligenceRadarApp:
 
             # 如果结果仍然过多，递归调用下一阶段
             if len(stage_selected) > 100 and stage < 5:
-                return await self._multi_stage_filtering(
-                    stage_selected, user, stage + 1
-                )
+                return await self._multi_stage_filtering(stage_selected, user, stage + 1)
 
             return stage_selected
 
@@ -1060,17 +1003,13 @@ class IntelligenceRadarApp:
             logger.error(f"❌ {user['name']}: 第{stage - 1}阶段分批筛选异常: {e}")
             return news_items[:10]  # 返回前10个作为备选
 
-    def _build_personal_filter_prompt(
-        self, user, batch_titles, batch_num, total_batches
-    ):
+    def _build_personal_filter_prompt(self, user, batch_titles, batch_num, total_batches):
         """构建个人筛选prompt"""
         try:
             keywords = user.get("keywords", [])
 
             # 加载prompt模板
-            prompt_template = self._load_prompt_template(
-                "prompts/personal_batch_filtering.txt"
-            )
+            prompt_template = self._load_prompt_template("prompts/personal_batch_filtering.txt")
 
             # 替换占位符
             replacements = {
@@ -1100,9 +1039,7 @@ class IntelligenceRadarApp:
 
         # 去除其他常见前缀
         title = re.sub(r"^[0-9]+[，,]?\s*", "", title)  # 去除数字前缀
-        title = re.sub(
-            r"^[一二三四五六七八九十]+[，,]?\s*", "", title
-        )  # 去除中文数字前缀
+        title = re.sub(r"^[一二三四五六七八九十]+[，,]?\s*", "", title)  # 去除中文数字前缀
 
         # 清理特殊字符，保留字母、数字、空格和基本标点
         title = re.sub(r"[^\w\s\-\.\,\:\!\?\(\)]", " ", title)
@@ -1298,9 +1235,7 @@ class IntelligenceRadarApp:
         }
 
         # 过滤停用词和短词
-        keywords = {
-            word for word in english_words if len(word) > 2 and word not in stop_words
-        }
+        keywords = {word for word in english_words if len(word) > 2 and word not in stop_words}
 
         return keywords
 
@@ -1411,8 +1346,7 @@ class IntelligenceRadarApp:
                         selected_title.lower() in title.lower()
                         or title.lower() in selected_title.lower()
                         or any(
-                            keyword.lower() in title.lower()
-                            for keyword in selected_title.split()
+                            keyword.lower() in title.lower() for keyword in selected_title.split()
                         )
                     ):
                         matched_news.append(news_item)
@@ -1446,9 +1380,7 @@ class IntelligenceRadarApp:
 
             # 替换占位符
             replacements = {"姓名": user["name"], "关注领域": user["interests"]}
-            personalized_prompt = self._replace_placeholders(
-                prompt_template, replacements
-            )
+            personalized_prompt = self._replace_placeholders(prompt_template, replacements)
 
             # 构建完整prompt
             prompt = f"{personalized_prompt}\n\n## 新闻内容\n{news_content}"
@@ -1487,9 +1419,7 @@ class IntelligenceRadarApp:
                     if response.status == 200:
                         result = await response.json()
                         content = (
-                            result.get("choices", [{}])[0]
-                            .get("message", {})
-                            .get("content", "")
+                            result.get("choices", [{}])[0].get("message", {}).get("content", "")
                         )
                         logger.info(
                             f"✅ {user['name']}: 播客内容生成成功，长度: {len(content)} 字符"
@@ -1536,9 +1466,7 @@ class IntelligenceRadarApp:
             print(f"📊 {user['name']}: 去重后剩余 {len(filtered_news)} 条新闻")
 
             # 生成播客内容
-            podcast_content = await self._generate_personal_podcast_content(
-                user, filtered_news
-            )
+            podcast_content = await self._generate_personal_podcast_content(user, filtered_news)
 
             if not podcast_content:
                 print(f"❌ {user['name']}: 播客内容生成失败")
@@ -1623,9 +1551,7 @@ class IntelligenceRadarApp:
             params = []
 
             for keyword in keywords:
-                keyword_conditions.append(
-                    "(title LIKE ? OR summary LIKE ? OR content LIKE ?)"
-                )
+                keyword_conditions.append("(title LIKE ? OR summary LIKE ? OR content LIKE ?)")
                 params.extend([f"%{keyword}%", f"%{keyword}%", f"%{keyword}%"])
 
             if not keyword_conditions:
@@ -1701,9 +1627,7 @@ class IntelligenceRadarApp:
             print(f"❌ {user_name} 播客音频推送失败: {str(e)}")
             return False
 
-    async def _send_audio_message_to_user(
-        self, user_info, file_key, audio_duration_ms, user_name
-    ):
+    async def _send_audio_message_to_user(self, user_info, file_key, audio_duration_ms, user_name):
         """发送音频消息到个人用户"""
         try:
             # 获取有效的token
@@ -1733,9 +1657,7 @@ class IntelligenceRadarApp:
             payload = {
                 "receive_id": user_info.get("open_id"),  # 使用open_id发送消息
                 "msg_type": "audio",
-                "content": json.dumps(
-                    {"file_key": file_key, "duration": audio_duration_ms}
-                ),
+                "content": json.dumps({"file_key": file_key, "duration": audio_duration_ms}),
             }
 
             # 使用异步HTTP客户端
@@ -1762,9 +1684,7 @@ class IntelligenceRadarApp:
                             )
                             return False
                     else:
-                        print(
-                            f"❌ {user_name}: 发送音频消息HTTP错误: {response.status}"
-                        )
+                        print(f"❌ {user_name}: 发送音频消息HTTP错误: {response.status}")
                         response_text = await response.text()
                         print(f"   响应内容: {response_text}")
                         return False
@@ -1777,6 +1697,7 @@ class IntelligenceRadarApp:
         try:
             # 直接从环境变量获取chat_id
             import os
+
             from dotenv import load_dotenv
 
             load_dotenv()
@@ -1842,13 +1763,9 @@ class IntelligenceRadarApp:
         if self.stats["end_time"]:
             duration = self.stats["end_time"] - self.stats["start_time"]
             print(f"⏱️ 总运行时间: {duration}")
-            print(
-                f"📅 结束时间: {self.stats['end_time'].strftime('%Y-%m-%d %H:%M:%S')}"
-            )
+            print(f"📅 结束时间: {self.stats['end_time'].strftime('%Y-%m-%d %H:%M:%S')}")
         else:
-            print(
-                f"📅 开始时间: {self.stats['start_time'].strftime('%Y-%m-%d %H:%M:%S')}"
-            )
+            print(f"📅 开始时间: {self.stats['start_time'].strftime('%Y-%m-%d %H:%M:%S')}")
 
         print("=" * 80)
 
@@ -2104,9 +2021,7 @@ class IntelligenceRadarApp:
             print(f"📊 {group}: 去重后剩余 {len(filtered_news)} 条新闻")
 
             # 生成播客内容
-            podcast_content = await self._generate_group_podcast_content(
-                group, filtered_news
-            )
+            podcast_content = await self._generate_group_podcast_content(group, filtered_news)
 
             if not podcast_content:
                 print(f"❌ {group}: 播客内容生成失败")
@@ -2115,9 +2030,7 @@ class IntelligenceRadarApp:
             print(f"✅ {group}: 播客内容生成成功")
 
             # 生成音频文件
-            audio_file = await self.feishu_bot._generate_audio_file(
-                podcast_content, group
-            )
+            audio_file = await self.feishu_bot._generate_audio_file(podcast_content, group)
 
             if not audio_file:
                 print(f"❌ {group}: 音频生成失败")
@@ -2167,9 +2080,7 @@ class IntelligenceRadarApp:
             params = []
 
             for keyword in group_keywords:
-                keyword_conditions.append(
-                    "(title LIKE ? OR summary LIKE ? OR content LIKE ?)"
-                )
+                keyword_conditions.append("(title LIKE ? OR summary LIKE ? OR content LIKE ?)")
                 params.extend([f"%{keyword}%", f"%{keyword}%", f"%{keyword}%"])
 
             query = f"""
@@ -2253,9 +2164,7 @@ class IntelligenceRadarApp:
             for i in range(0, len(filtered_news_items), batch_size):
                 batch_items = filtered_news_items[i : i + batch_size]
                 batch_num = i // batch_size + 1
-                total_batches = (
-                    len(filtered_news_items) + batch_size - 1
-                ) // batch_size
+                total_batches = (len(filtered_news_items) + batch_size - 1) // batch_size
 
                 if batch_num % 2 == 0 or batch_num == total_batches:
                     print(f"📦 {group}: 处理第 {batch_num}/{total_batches} 批")
@@ -2273,9 +2182,7 @@ class IntelligenceRadarApp:
                 )
 
                 # 调用LLM筛选当前批次
-                batch_selected_titles = await self._call_llm_for_group_scoring(
-                    prompt, group
-                )
+                batch_selected_titles = await self._call_llm_for_group_scoring(prompt, group)
 
                 if batch_selected_titles:
                     # 匹配选中的URL
@@ -2311,14 +2218,10 @@ class IntelligenceRadarApp:
                 print(f"❌ {group}: 第一阶段未筛选出任何相关新闻")
                 return []
 
-            print(
-                f"✅ {group}: 第一阶段共筛选出 {len(first_stage_selected)} 个相关新闻"
-            )
+            print(f"✅ {group}: 第一阶段共筛选出 {len(first_stage_selected)} 个相关新闻")
 
             # 多阶段筛选：根据数量决定筛选策略
-            filtered_news = await self._multi_stage_filtering_for_group(
-                first_stage_selected, group
-            )
+            filtered_news = await self._multi_stage_filtering_for_group(first_stage_selected, group)
 
             # 应用网站多样性筛选
             if filtered_news:
@@ -2351,9 +2254,7 @@ class IntelligenceRadarApp:
 
             # 按时间排序每个网站的新闻
             for site in site_groups:
-                site_groups[site].sort(
-                    key=lambda x: x.get("extracted_at", ""), reverse=True
-                )
+                site_groups[site].sort(key=lambda x: x.get("extracted_at", ""), reverse=True)
 
             # 选择新闻，确保网站多样性
             selected_news = []
@@ -2502,9 +2403,7 @@ class IntelligenceRadarApp:
             keywords = group_config.get("keywords", [])
 
             # 加载prompt模板
-            prompt_template = self._load_prompt_template(
-                "prompts/group_batch_filtering.txt"
-            )
+            prompt_template = self._load_prompt_template("prompts/group_batch_filtering.txt")
 
             # 替换占位符
             replacements = {
@@ -2580,9 +2479,7 @@ class IntelligenceRadarApp:
                     return []
 
             except Exception as e:
-                print(
-                    f"❌ {group}: LLM调用失败 (尝试 {attempt + 1}/{max_retries}): {e}"
-                )
+                print(f"❌ {group}: LLM调用失败 (尝试 {attempt + 1}/{max_retries}): {e}")
                 if attempt < max_retries - 1:
                     await asyncio.sleep(retry_delay)
                 else:
@@ -2600,10 +2497,7 @@ class IntelligenceRadarApp:
                 line = line.strip()
                 # 处理新闻URL行
                 if line and (
-                    "新闻URL：" in line
-                    or "新闻URL:" in line
-                    or "URL：" in line
-                    or "URL:" in line
+                    "新闻URL：" in line or "新闻URL:" in line or "URL：" in line or "URL:" in line
                 ):
                     # 提取URL
                     if "新闻URL：" in line:
@@ -2642,13 +2536,9 @@ class IntelligenceRadarApp:
                 print(
                     f"🔄 {group}: 第{stage - 1}阶段结果过多({len(news_items)}条)，开启第{stage}阶段筛选"
                 )
-                return await self._multi_stage_filtering_for_group(
-                    news_items, group, stage + 1
-                )
+                return await self._multi_stage_filtering_for_group(news_items, group, stage + 1)
 
-            print(
-                f"🔄 {group}: 开始第{stage - 1}阶段筛选，从 {len(news_items)} 个中选出最相关的"
-            )
+            print(f"🔄 {group}: 开始第{stage - 1}阶段筛选，从 {len(news_items)} 个中选出最相关的")
 
             # 第二阶段也需要分批处理，如果数量过多
             if len(news_items) > 100:
@@ -2658,9 +2548,7 @@ class IntelligenceRadarApp:
             # 构建当前阶段的prompt
             stage_titles = []
             for i, item in enumerate(news_items, 1):
-                stage_titles.append(
-                    f"{i}. 标题：{item['title']}\n   URL：{item['url']}"
-                )
+                stage_titles.append(f"{i}. 标题：{item['title']}\n   URL：{item['url']}")
 
             # 根据阶段调整筛选数量
             if stage == 2:
@@ -2675,16 +2563,12 @@ class IntelligenceRadarApp:
             keywords = group_config.get("keywords", []) if group_config else []
 
             # 加载prompt模板
-            prompt_template = self._load_prompt_template(
-                "prompts/group_stage_filtering.txt"
-            )
+            prompt_template = self._load_prompt_template("prompts/group_stage_filtering.txt")
 
             # 替换占位符
             replacements = {
                 "群组名称": group,
-                "显示名称": group_config.get("display_name", group)
-                if group_config
-                else group,
+                "显示名称": group_config.get("display_name", group) if group_config else group,
                 "关注领域": group_config.get("interests", "") if group_config else "",
                 "关键词列表": ", ".join(keywords),
                 "目标数量": target_count,
@@ -2692,7 +2576,9 @@ class IntelligenceRadarApp:
             stage_prompt = self._replace_placeholders(prompt_template, replacements)
 
             # 添加新闻列表
-            stage_prompt += f"\n\n## 已筛选的新闻列表 (第{stage - 1}阶段)\n{chr(10).join(stage_titles)}"
+            stage_prompt += (
+                f"\n\n## 已筛选的新闻列表 (第{stage - 1}阶段)\n{chr(10).join(stage_titles)}"
+            )
 
             # 调用LLM进行当前阶段筛选
             selected_urls = await self._call_llm_for_group_scoring(stage_prompt, group)
@@ -2711,15 +2597,11 @@ class IntelligenceRadarApp:
                         matched_items.append(item)
                         break
 
-            print(
-                f"✅ {group}: 第{stage - 1}阶段筛选出 {len(matched_items)} 个相关新闻"
-            )
+            print(f"✅ {group}: 第{stage - 1}阶段筛选出 {len(matched_items)} 个相关新闻")
 
             # 如果结果仍然过多，递归调用下一阶段
             if len(matched_items) > 100 and stage < 5:  # 最多5个阶段
-                return await self._multi_stage_filtering_for_group(
-                    matched_items, group, stage + 1
-                )
+                return await self._multi_stage_filtering_for_group(matched_items, group, stage + 1)
 
             return matched_items
 
@@ -2731,9 +2613,7 @@ class IntelligenceRadarApp:
     async def _batch_filtering_for_group(self, news_items, group, stage):
         """群组分批筛选机制"""
         try:
-            print(
-                f"📦 {group}: 开始第{stage - 1}阶段分批筛选，共 {len(news_items)} 个新闻"
-            )
+            print(f"📦 {group}: 开始第{stage - 1}阶段分批筛选，共 {len(news_items)} 个新闻")
 
             # 分批处理
             batch_size = 100  # 每批100个URL
@@ -2745,9 +2625,7 @@ class IntelligenceRadarApp:
                 total_batches = (len(news_items) + batch_size - 1) // batch_size
 
                 if batch_num % 2 == 0 or batch_num == total_batches:
-                    print(
-                        f"📦 {group}: 第{stage - 1}阶段处理第 {batch_num}/{total_batches} 批"
-                    )
+                    print(f"📦 {group}: 第{stage - 1}阶段处理第 {batch_num}/{total_batches} 批")
 
                 # 构建当前批次的新闻标题和URL列表
                 batch_titles = []
@@ -2766,9 +2644,7 @@ class IntelligenceRadarApp:
                 )
 
                 # 调用LLM筛选当前批次
-                batch_selected_titles = await self._call_llm_for_group_scoring(
-                    prompt, group
-                )
+                batch_selected_titles = await self._call_llm_for_group_scoring(prompt, group)
 
                 if batch_selected_titles:
                     # 匹配选中的URL
@@ -2789,9 +2665,7 @@ class IntelligenceRadarApp:
                         f"✅ {group}: 第{stage - 1}阶段第 {batch_num} 批筛选出 {len(batch_selected_titles)} 个相关新闻"
                     )
                 else:
-                    print(
-                        f"⚠️ {group}: 第{stage - 1}阶段第 {batch_num} 批未筛选出相关新闻"
-                    )
+                    print(f"⚠️ {group}: 第{stage - 1}阶段第 {batch_num} 批未筛选出相关新闻")
 
                 # 批次间延迟
                 if i + batch_size < len(news_items):
@@ -2801,15 +2675,11 @@ class IntelligenceRadarApp:
                 print(f"❌ {group}: 第{stage - 1}阶段分批筛选未筛选出任何相关新闻")
                 return news_items[:10]
 
-            print(
-                f"✅ {group}: 第{stage - 1}阶段分批筛选共筛选出 {len(stage_selected)} 个相关新闻"
-            )
+            print(f"✅ {group}: 第{stage - 1}阶段分批筛选共筛选出 {len(stage_selected)} 个相关新闻")
 
             # 如果结果仍然过多，递归调用下一阶段
             if len(stage_selected) > 100 and stage < 5:
-                return await self._multi_stage_filtering_for_group(
-                    stage_selected, group, stage + 1
-                )
+                return await self._multi_stage_filtering_for_group(stage_selected, group, stage + 1)
 
             return stage_selected
 
@@ -2862,9 +2732,7 @@ class IntelligenceRadarApp:
                 "群组名称": group_info.get("display_name", group),
                 "关注领域": group_info.get("interests", ""),
             }
-            personalized_prompt = self._replace_placeholders(
-                prompt_template, replacements
-            )
+            personalized_prompt = self._replace_placeholders(prompt_template, replacements)
 
             # 构建完整prompt
             prompt = f"{personalized_prompt}\n\n## 新闻内容\n{news_content}"
@@ -2903,13 +2771,9 @@ class IntelligenceRadarApp:
                     if response.status == 200:
                         result = await response.json()
                         content = (
-                            result.get("choices", [{}])[0]
-                            .get("message", {})
-                            .get("content", "")
+                            result.get("choices", [{}])[0].get("message", {}).get("content", "")
                         )
-                        logger.info(
-                            f"✅ {group}: 播客内容生成成功，长度: {len(content)} 字符"
-                        )
+                        logger.info(f"✅ {group}: 播客内容生成成功，长度: {len(content)} 字符")
                         return content
                     else:
                         logger.error(f"❌ 播客内容生成失败: {response.status}")

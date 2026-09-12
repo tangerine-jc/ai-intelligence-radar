@@ -2,9 +2,10 @@
 """List Feishu groups available to the configured bot."""
 
 import asyncio
-import aiohttp
 import os
 from pathlib import Path
+
+import aiohttp
 from dotenv import load_dotenv
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]

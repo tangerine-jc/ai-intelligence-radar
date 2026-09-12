@@ -5,19 +5,20 @@
 替代原来的三个群机器人，实现定制化内容推送
 """
 
-import os
-import json
 import asyncio
-import aiohttp
-import time
-import subprocess
-import shutil
+import json
 import logging
+import os
+import shutil
+import subprocess
+import time
 import uuid
 from datetime import datetime
-from typing import Optional, Dict, List
+from typing import Dict, List, Optional
 
-from ..config import FeishuConfig, Config
+import aiohttp
+
+from ..config import Config, FeishuConfig
 from ..processing.optimized_news_processor import OptimizedNewsProcessor
 from ..processing.url_deduplicator import URLDeduplicator
 from .audio.minimax_tts import MinimaxTTS
@@ -45,9 +46,7 @@ class FeishuPodcastNewsBot:
             ],
         }
         # 初始化URL去重器
-        self.url_deduplicator = URLDeduplicator(
-            str(self.config.DATA_DIR / "processed_data")
-        )
+        self.url_deduplicator = URLDeduplicator(str(self.config.DATA_DIR / "processed_data"))
         self.minimax_tts = None
         if self.config.MINIMAX_GROUP_ID and self.config.MINIMAX_API_KEY:
             self.minimax_tts = MinimaxTTS(
@@ -73,15 +72,11 @@ class FeishuPodcastNewsBot:
         try:
             current_time = time.time()
             # 如果token还有效（剩余时间大于30分钟），直接使用
-            if self.tenant_access_token and current_time < (
-                self.token_expire_time - 1800
-            ):
+            if self.tenant_access_token and current_time < (self.token_expire_time - 1800):
                 return True
 
             print("🔄 正在获取tenant_access_token...")
-            url = (
-                "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal"
-            )
+            url = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal"
             headers = {"Content-Type": "application/json; charset=utf-8"}
             data = {
                 "app_id": self.feishu_config.APP_ID,
@@ -97,9 +92,7 @@ class FeishuPodcastNewsBot:
 
                         if result.get("code") == 0:
                             self.tenant_access_token = result.get("tenant_access_token")
-                            self.token_expire_time = current_time + result.get(
-                                "expire", 7200
-                            )
+                            self.token_expire_time = current_time + result.get("expire", 7200)
                             print("✅ 获取tenant_access_token成功")
                             print(f"⏰ 过期时间: {result.get('expire', 7200)}秒")
                             return True
@@ -268,21 +261,15 @@ class FeishuPodcastNewsBot:
             # 翻译标题
             original_title = news_item.get("title", "")
             if original_title:
-                translated_title = await self.ensure_final_chinese_content(
-                    original_title
-                )
+                translated_title = await self.ensure_final_chinese_content(original_title)
                 translated_data["title"] = translated_title
                 if translated_title != original_title:
-                    print(
-                        f"🔄 标题翻译: {original_title[:30]}... -> {translated_title[:30]}..."
-                    )
+                    print(f"🔄 标题翻译: {original_title[:30]}... -> {translated_title[:30]}...")
 
             # 翻译摘要
             original_summary = news_item.get("summary", "")
             if original_summary:
-                translated_summary = await self.ensure_final_chinese_content(
-                    original_summary
-                )
+                translated_summary = await self.ensure_final_chinese_content(original_summary)
                 translated_data["summary"] = translated_summary
                 if translated_summary != original_summary:
                     print(
@@ -371,18 +358,14 @@ class FeishuPodcastNewsBot:
                     if response.status == 200:
                         result = await response.json()
                         if "choices" in result and result["choices"]:
-                            optimized_content = result["choices"][0]["message"][
-                                "content"
-                            ].strip()
+                            optimized_content = result["choices"][0]["message"]["content"].strip()
                             print(f"🎧 播客优化响应: {optimized_content[:200]}...")
 
                             # 解析优化后的内容
                             try:
                                 # 解析标题
                                 if "**标题：**" in optimized_content:
-                                    title_start = (
-                                        optimized_content.find("**标题：**") + 5
-                                    )
+                                    title_start = optimized_content.find("**标题：**") + 5
                                     title_end = optimized_content.find(
                                         "**播客导语：**", title_start
                                     )
@@ -394,9 +377,7 @@ class FeishuPodcastNewsBot:
 
                                 # 解析播客导语
                                 if "**播客导语：**" in optimized_content:
-                                    intro_start = (
-                                        optimized_content.find("**播客导语：**") + 7
-                                    )
+                                    intro_start = optimized_content.find("**播客导语：**") + 7
                                     intro_end = optimized_content.find(
                                         "**播客内容：**", intro_start
                                     )
@@ -408,12 +389,10 @@ class FeishuPodcastNewsBot:
 
                                 # 解析播客内容
                                 if "**播客内容：**" in optimized_content:
-                                    content_start = (
-                                        optimized_content.find("**播客内容：**") + 7
-                                    )
-                                    optimized_data["podcast_content"] = (
-                                        optimized_content[content_start:].strip()
-                                    )
+                                    content_start = optimized_content.find("**播客内容：**") + 7
+                                    optimized_data["podcast_content"] = optimized_content[
+                                        content_start:
+                                    ].strip()
 
                                 print(f"🎧 播客优化完成: {title[:30]}...")
                                 return optimized_data
@@ -484,9 +463,7 @@ class FeishuPodcastNewsBot:
                     if response.status == 200:
                         result = await response.json()
                         if "choices" in result and result["choices"]:
-                            score_content = result["choices"][0]["message"][
-                                "content"
-                            ].strip()
+                            score_content = result["choices"][0]["message"]["content"].strip()
                             print(f"🔍 评分API返回内容: {score_content[:200]}...")
 
                             # 解析评分结果
@@ -495,12 +472,8 @@ class FeishuPodcastNewsBot:
 
                                 # 解析时效性评分
                                 if "时效性评分：" in score_content:
-                                    timeliness_start = (
-                                        score_content.find("时效性评分：") + 5
-                                    )
-                                    timeliness_end = score_content.find(
-                                        "分", timeliness_start
-                                    )
+                                    timeliness_start = score_content.find("时效性评分：") + 5
+                                    timeliness_end = score_content.find("分", timeliness_start)
                                     if timeliness_end != -1:
                                         timeliness_text = score_content[
                                             timeliness_start:timeliness_end
@@ -508,25 +481,15 @@ class FeishuPodcastNewsBot:
                                         # 提取数字
                                         import re
 
-                                        timeliness_match = re.search(
-                                            r"\d+", timeliness_text
-                                        )
+                                        timeliness_match = re.search(r"\d+", timeliness_text)
                                         if timeliness_match:
-                                            timeliness_score = int(
-                                                timeliness_match.group()
-                                            )
-                                            scores["timeliness_score"] = (
-                                                timeliness_score
-                                            )
+                                            timeliness_score = int(timeliness_match.group())
+                                            scores["timeliness_score"] = timeliness_score
 
                                 # 解析相关性评分
                                 if "相关性评分：" in score_content:
-                                    relevance_start = (
-                                        score_content.find("相关性评分：") + 5
-                                    )
-                                    relevance_end = score_content.find(
-                                        "分", relevance_start
-                                    )
+                                    relevance_start = score_content.find("相关性评分：") + 5
+                                    relevance_end = score_content.find("分", relevance_start)
                                     if relevance_end != -1:
                                         relevance_text = score_content[
                                             relevance_start:relevance_end
@@ -534,20 +497,14 @@ class FeishuPodcastNewsBot:
                                         # 提取数字
                                         import re
 
-                                        relevance_match = re.search(
-                                            r"\d+", relevance_text
-                                        )
+                                        relevance_match = re.search(r"\d+", relevance_text)
                                         if relevance_match:
-                                            relevance_score = int(
-                                                relevance_match.group()
-                                            )
+                                            relevance_score = int(relevance_match.group())
                                             scores["relevance_score"] = relevance_score
 
                                 # 解析推荐结果
                                 if "综合推荐：" in score_content:
-                                    recommendation_start = (
-                                        score_content.find("综合推荐：") + 5
-                                    )
+                                    recommendation_start = score_content.find("综合推荐：") + 5
                                     recommendation_end = score_content.find(
                                         "\n", recommendation_start
                                     )
@@ -613,9 +570,7 @@ class FeishuPodcastNewsBot:
             needs_translation = True
             source_language = "日文"
         # 如果主要是英文，需要翻译
-        elif (
-            english_chars > 0 and english_chars / (english_chars + chinese_chars) >= 0.7
-        ):
+        elif english_chars > 0 and english_chars / (english_chars + chinese_chars) >= 0.7:
             needs_translation = True
             source_language = "英文"
         # 如果主要是中文，不需要翻译
@@ -665,9 +620,7 @@ class FeishuPodcastNewsBot:
                     if response.status == 200:
                         result = await response.json()
                         if "choices" in result and result["choices"]:
-                            translated = result["choices"][0]["message"][
-                                "content"
-                            ].strip()
+                            translated = result["choices"][0]["message"]["content"].strip()
                             if translated and translated != text:
                                 print(f"🔄 最终翻译: {text} -> {translated}")
                                 return translated
@@ -744,15 +697,11 @@ class FeishuPodcastNewsBot:
         # 如果都没找到，返回原始截断文本（但去掉...）
         return truncated.rstrip("...")
 
-    async def filter_news_for_group(
-        self, news_data: List[Dict], group_name: str
-    ) -> List[Dict]:
+    async def filter_news_for_group(self, news_data: List[Dict], group_name: str) -> List[Dict]:
         """使用LLM播报员方法过滤新闻内容"""
         try:
             # 直接使用LLM播报员方法进行筛选
-            selected_news = await self._select_news_with_anchor_prompt(
-                news_data, group_name
-            )
+            selected_news = await self._select_news_with_anchor_prompt(news_data, group_name)
             logger.info(
                 f"📊 {group_name} 群组LLM筛选: {len(selected_news)}/{len(news_data)} 条相关新闻"
             )
@@ -761,9 +710,7 @@ class FeishuPodcastNewsBot:
             logger.error(f"❌ {group_name} 群组LLM筛选失败: {str(e)}")
             return []
 
-    async def generate_customized_script(
-        self, news_data: List[Dict], group_name: str
-    ) -> str:
+    async def generate_customized_script(self, news_data: List[Dict], group_name: str) -> str:
         """为特定群组生成定制化播客脚本"""
         if not news_data:
             return f"📰 {group_name} 群组今日暂无相关新闻"
@@ -822,9 +769,7 @@ class FeishuPodcastNewsBot:
         script += f"🎧 以上就是{group_display_name}的定制新闻播报，感谢收听！"
         return script
 
-    async def send_news_text(
-        self, news_data: list, group_name: str, chat_id: str
-    ) -> bool:
+    async def send_news_text(self, news_data: list, group_name: str, chat_id: str) -> bool:
         """发送新闻文本到指定群组 - 每条新闻单独发送"""
         try:
             if not await self.get_tenant_access_token():
@@ -841,12 +786,8 @@ class FeishuPodcastNewsBot:
 
             if not news_data:
                 # 发送无新闻消息
-                text_content = (
-                    f"{emoji} {group_display_name}\n\n📭 今日暂无相关新闻内容"
-                )
-                return await self._send_single_message(
-                    chat_id, text_content, group_display_name
-                )
+                text_content = f"{emoji} {group_display_name}\n\n📭 今日暂无相关新闻内容"
+                return await self._send_single_message(chat_id, text_content, group_display_name)
 
             # 发送群组标题消息
             header_content = f"{emoji} {group_display_name} 新闻推送"
@@ -874,9 +815,7 @@ class FeishuPodcastNewsBot:
                     # 最终推送前确保所有内容都是中文
                     chinese_title = await self.ensure_final_chinese_content(title)
                     chinese_summary = await self.ensure_final_chinese_content(summary)
-                    chinese_description = await self.ensure_final_chinese_content(
-                        description
-                    )
+                    chinese_description = await self.ensure_final_chinese_content(description)
 
                     # 获取新闻链接
                     news_link = news.get("url", news.get("link", ""))
@@ -892,15 +831,11 @@ class FeishuPodcastNewsBot:
                     # 添加精简的新闻摘要
                     if chinese_summary:
                         # 确保完整句子，不截断
-                        summary_text = self._ensure_complete_sentence(
-                            chinese_summary, 150
-                        )
+                        summary_text = self._ensure_complete_sentence(chinese_summary, 150)
                         text_content += f"📝 {summary_text}\n"
                     elif chinese_description:
                         # 确保完整句子，不截断
-                        desc_text = self._ensure_complete_sentence(
-                            chinese_description, 150
-                        )
+                        desc_text = self._ensure_complete_sentence(chinese_description, 150)
                         text_content += f"📝 {desc_text}\n"
 
                     # 添加可点击的链接
@@ -908,9 +843,7 @@ class FeishuPodcastNewsBot:
                         text_content += f"🔗 链接: {news_link}\n"
 
                     # 发送单条新闻
-                    if await self._send_single_message(
-                        chat_id, text_content, group_display_name
-                    ):
+                    if await self._send_single_message(chat_id, text_content, group_display_name):
                         success_count += 1
 
                     # 添加延迟避免发送过快
@@ -920,9 +853,7 @@ class FeishuPodcastNewsBot:
                     print(f"❌ 发送第{i}条新闻失败: {str(e)}")
                     continue
 
-            print(
-                f"✅ {group_display_name} 新闻推送完成: {success_count}/{len(news_data)} 条成功"
-            )
+            print(f"✅ {group_display_name} 新闻推送完成: {success_count}/{len(news_data)} 条成功")
             return success_count > 0
 
         except Exception as e:
@@ -948,12 +879,8 @@ class FeishuPodcastNewsBot:
             }
 
             async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    url, params=params, headers=headers, json=data
-                ) as response:
-                    print(
-                        f"📊 {group_display_name} 文本消息响应状态: {response.status}"
-                    )
+                async with session.post(url, params=params, headers=headers, json=data) as response:
+                    print(f"📊 {group_display_name} 文本消息响应状态: {response.status}")
 
                     if response.status == 200:
                         result = await response.json()
@@ -1012,9 +939,7 @@ class FeishuPodcastNewsBot:
         except Exception as e:
             print(f"⚠️ 记录消息失败: {str(e)}")
 
-    async def send_news_podcast(
-        self, file_key: str, group_name: str, chat_id: str
-    ) -> bool:
+    async def send_news_podcast(self, file_key: str, group_name: str, chat_id: str) -> bool:
         """发送新闻播客到指定群组"""
         try:
             if not await self.get_tenant_access_token():
@@ -1047,9 +972,7 @@ class FeishuPodcastNewsBot:
             print(f"🎵 音频File Key: {file_key}")
 
             async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    url, params=params, headers=headers, json=data
-                ) as response:
+                async with session.post(url, params=params, headers=headers, json=data) as response:
                     print(f"📊 播客推送响应状态: {response.status}")
 
                     if response.status == 200:
@@ -1062,9 +985,7 @@ class FeishuPodcastNewsBot:
                             print(f"✅ {group_display_name} 新闻播客推送成功！")
                             return True
                         else:
-                            print(
-                                f"❌ {group_display_name} 新闻播客推送失败: {result.get('msg')}"
-                            )
+                            print(f"❌ {group_display_name} 新闻播客推送失败: {result.get('msg')}")
                     else:
                         error_text = await response.text()
                         print(
@@ -1134,9 +1055,7 @@ class FeishuPodcastNewsBot:
             # 1. 先发送新闻文本（如果有的话）
             if selected_news:
                 logger.info(f"📤 发送 {group_name} 群组新闻文本...")
-                text_success = await self.send_news_text(
-                    selected_news, group_name, chat_id
-                )
+                text_success = await self.send_news_text(selected_news, group_name, chat_id)
                 if not text_success:
                     logger.warning(f"⚠️ {group_name} 群组: 文本推送失败，继续推送音频")
 
@@ -1175,9 +1094,7 @@ class FeishuPodcastNewsBot:
                 f"prompts/{group_name.lower()}_news_anchor.txt",
                 "prompts/group_news_anchor_template.txt",
             ]
-            prompt_file = next(
-                (path for path in prompt_files if os.path.exists(path)), None
-            )
+            prompt_file = next((path for path in prompt_files if os.path.exists(path)), None)
             if not prompt_file:
                 logger.warning("⚠️ 播报员prompt文件不存在，使用关键词匹配")
                 return await self._fallback_keyword_selection(news_items, group_name)
@@ -1243,9 +1160,7 @@ class FeishuPodcastNewsBot:
                         )
 
                         if "choices" in result and result["choices"]:
-                            llm_response = result["choices"][0]["message"][
-                                "content"
-                            ].strip()
+                            llm_response = result["choices"][0]["message"]["content"].strip()
                             logger.info(f"🔍 {group_name} LLM响应: {llm_response}")
                             print(f"🔍 {group_name} 完整LLM响应: {llm_response}")
 
@@ -1253,9 +1168,7 @@ class FeishuPodcastNewsBot:
                             selected_news = await self._parse_anchor_response(
                                 llm_response, news_items, group_name
                             )
-                            logger.info(
-                                f"🔍 {group_name} 播报员选择了 {len(selected_news)} 条新闻"
-                            )
+                            logger.info(f"🔍 {group_name} 播报员选择了 {len(selected_news)} 条新闻")
                             return selected_news
                         else:
                             logger.warning(f"⚠️ {group_name} LLM API返回格式错误")
@@ -1266,9 +1179,7 @@ class FeishuPodcastNewsBot:
                         logger.warning(
                             f"⚠️ {group_name} LLM API调用失败: {response.status} - {error_text}"
                         )
-                        print(
-                            f"⚠️ {group_name} API调用失败: {response.status} - {error_text}"
-                        )
+                        print(f"⚠️ {group_name} API调用失败: {response.status} - {error_text}")
                         return []
 
         except Exception as e:
@@ -1322,9 +1233,9 @@ class FeishuPodcastNewsBot:
                 # 模糊匹配（包含关系）
                 for extracted_title in extracted_titles:
                     # 检查标题匹配
-                    if (
-                        extracted_title in news_title or news_title in extracted_title
-                    ) and len(extracted_title) > 5:
+                    if (extracted_title in news_title or news_title in extracted_title) and len(
+                        extracted_title
+                    ) > 5:
                         selected_news.append(news)
                         break
 
@@ -1342,9 +1253,7 @@ class FeishuPodcastNewsBot:
                 logger.warning(f"⚠️ {group_name} LLM解析未找到匹配新闻")
                 return []
 
-            logger.info(
-                f"🔍 {group_name} 成功解析LLM响应，选择了 {len(selected_news)} 条新闻"
-            )
+            logger.info(f"🔍 {group_name} 成功解析LLM响应，选择了 {len(selected_news)} 条新闻")
             return selected_news
 
         except Exception as e:
@@ -1367,9 +1276,7 @@ class FeishuPodcastNewsBot:
                 f"prompts/{group_name.lower()}_podcast_generation.txt",
                 "prompts/group_podcast_generation_template.txt",
             ]
-            prompt_file = next(
-                (path for path in prompt_files if os.path.exists(path)), None
-            )
+            prompt_file = next((path for path in prompt_files if os.path.exists(path)), None)
             if not prompt_file:
                 logger.error("❌ 播客生成prompt文件不存在")
                 return None
@@ -1413,9 +1320,7 @@ class FeishuPodcastNewsBot:
                     if response.status == 200:
                         result = await response.json()
                         if "choices" in result and result["choices"]:
-                            podcast_script = result["choices"][0]["message"][
-                                "content"
-                            ].strip()
+                            podcast_script = result["choices"][0]["message"]["content"].strip()
                             logger.info(
                                 f"🔍 {group_name} LLM播客脚本生成成功，长度: {len(podcast_script)} 字符"
                             )
@@ -1434,9 +1339,7 @@ class FeishuPodcastNewsBot:
             logger.error(f"❌ {group_name} 播客内容生成失败: {str(e)}")
             return None
 
-    async def _generate_audio_file(
-        self, content: str, group_name: str
-    ) -> Optional[str]:
+    async def _generate_audio_file(self, content: str, group_name: str) -> Optional[str]:
         """生成音频文件"""
         try:
             if not self.minimax_tts:
@@ -1527,9 +1430,7 @@ class FeishuPodcastNewsBot:
             print(f"❌ {group_name} 群组定制播客生成失败")
             return None
 
-    async def broadcast_customized_news_podcast(
-        self, news_data: List[Dict]
-    ) -> Dict[str, bool]:
+    async def broadcast_customized_news_podcast(self, news_data: List[Dict]) -> Dict[str, bool]:
         """广播定制化新闻播客到所有群组"""
         print("🚀 开始定制化新闻播客广播")
         print("=" * 60)
@@ -1557,9 +1458,7 @@ class FeishuPodcastNewsBot:
                 continue
 
             # 生成定制化播客
-            audio_path = await self.generate_customized_podcast(
-                filtered_news, group_name
-            )
+            audio_path = await self.generate_customized_podcast(filtered_news, group_name)
 
             if not audio_path:
                 print(f"⚠️ {group_name} 群组跳过播客推送")
@@ -1587,12 +1486,8 @@ class FeishuPodcastNewsBot:
 
                 # 发送播客
                 print(f"📱 发送 {group_name} 群组播客...")
-                podcast_success = await self.send_news_podcast(
-                    file_key, group_name, chat_id
-                )
-                results[group_name] = (
-                    text_success and podcast_success
-                )  # 文本和播客都成功才算成功
+                podcast_success = await self.send_news_podcast(file_key, group_name, chat_id)
+                results[group_name] = text_success and podcast_success  # 文本和播客都成功才算成功
 
                 # 清理临时文件
                 if opus_path and os.path.exists(opus_path):

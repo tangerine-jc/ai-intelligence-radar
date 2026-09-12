@@ -5,13 +5,14 @@
 """
 
 import json
-import os
 import logging
+import os
+import ssl
 import uuid
 from datetime import datetime
-from typing import List, Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
+
 import aiohttp
-import ssl
 
 logger = logging.getLogger(__name__)
 
@@ -40,12 +41,8 @@ class OptimizedNewsProcessor:
             # 提取标题信息
             titles_data = {
                 "export_info": {
-                    "export_time": all_news_data.get("export_info", {}).get(
-                        "export_time"
-                    ),
-                    "run_timestamp": all_news_data.get("export_info", {}).get(
-                        "run_timestamp"
-                    ),
+                    "export_time": all_news_data.get("export_info", {}).get("export_time"),
+                    "run_timestamp": all_news_data.get("export_info", {}).get("run_timestamp"),
                     "total_news": len(news_list),
                 },
                 "news_titles": [],
@@ -63,9 +60,7 @@ class OptimizedNewsProcessor:
 
             # 生成标题摘要文件路径
             summary_dir = os.path.dirname(all_news_summary_path)
-            titles_summary_path = os.path.join(
-                summary_dir, "all_news_titles_summary.json"
-            )
+            titles_summary_path = os.path.join(summary_dir, "all_news_titles_summary.json")
 
             # 保存标题摘要文件
             with open(titles_summary_path, "w", encoding="utf-8") as f:
@@ -78,9 +73,7 @@ class OptimizedNewsProcessor:
             logger.error(f"❌ 创建标题摘要文件失败: {str(e)}")
             return None
 
-    async def score_news_titles(
-        self, titles_summary_path: str, group_name: str
-    ) -> List[Dict]:
+    async def score_news_titles(self, titles_summary_path: str, group_name: str) -> List[Dict]:
         """使用大模型对新闻标题进行打分和筛选"""
         try:
             # 读取标题摘要文件
@@ -88,26 +81,18 @@ class OptimizedNewsProcessor:
                 titles_data = json.load(f)
 
             news_titles = titles_data.get("news_titles", [])
-            logger.info(
-                f"🔍 {group_name} 群组: 开始对 {len(news_titles)} 个标题进行评分"
-            )
+            logger.info(f"🔍 {group_name} 群组: 开始对 {len(news_titles)} 个标题进行评分")
 
             # 构建评分prompt
             scoring_prompt = self._build_title_scoring_prompt(news_titles, group_name)
 
             # 调用大模型进行评分
-            scoring_result = await self._call_llm_for_title_scoring(
-                scoring_prompt, group_name
-            )
+            scoring_result = await self._call_llm_for_title_scoring(scoring_prompt, group_name)
 
             if scoring_result:
                 # 解析评分结果
-                selected_titles = self._parse_title_scoring_result(
-                    scoring_result, news_titles
-                )
-                logger.info(
-                    f"✅ {group_name} 群组: 筛选出 {len(selected_titles)} 个相关标题"
-                )
+                selected_titles = self._parse_title_scoring_result(scoring_result, news_titles)
+                logger.info(f"✅ {group_name} 群组: 筛选出 {len(selected_titles)} 个相关标题")
                 return selected_titles
             else:
                 logger.warning(f"⚠️ {group_name} 群组: 标题评分失败")
@@ -117,9 +102,7 @@ class OptimizedNewsProcessor:
             logger.error(f"❌ {group_name} 群组标题评分失败: {str(e)}")
             return []
 
-    def _build_title_scoring_prompt(
-        self, news_titles: List[Dict], group_name: str
-    ) -> str:
+    def _build_title_scoring_prompt(self, news_titles: List[Dict], group_name: str) -> str:
         """构建标题评分prompt"""
         # 根据群组选择不同的评分标准
         group_criteria = {
@@ -176,9 +159,7 @@ class OptimizedNewsProcessor:
 
         return prompt
 
-    async def _call_llm_for_title_scoring(
-        self, prompt: str, group_name: str
-    ) -> Optional[str]:
+    async def _call_llm_for_title_scoring(self, prompt: str, group_name: str) -> Optional[str]:
         """调用大模型进行标题评分"""
         try:
             # 生成唯一的chatid
@@ -213,9 +194,7 @@ class OptimizedNewsProcessor:
                     if response.status == 200:
                         result = await response.json()
                         if "choices" in result and result["choices"]:
-                            llm_response = result["choices"][0]["message"][
-                                "content"
-                            ].strip()
+                            llm_response = result["choices"][0]["message"]["content"].strip()
                             logger.info(
                                 f"🔍 {group_name} 群组标题评分LLM响应: {llm_response[:200]}..."
                             )
@@ -234,13 +213,11 @@ class OptimizedNewsProcessor:
             logger.error(f"❌ {group_name} 群组标题评分LLM调用失败: {str(e)}")
             return None
 
-    def _parse_title_scoring_result(
-        self, llm_response: str, news_titles: List[Dict]
-    ) -> List[Dict]:
+    def _parse_title_scoring_result(self, llm_response: str, news_titles: List[Dict]) -> List[Dict]:
         """解析标题评分结果"""
         try:
-            import re
             import json
+            import re
 
             # 尝试直接解析JSON
             try:
@@ -300,12 +277,8 @@ class OptimizedNewsProcessor:
                 for news in news_list:
                     if news.get("title", "") == target_title:
                         # 添加评分信息
-                        news["relevance_score"] = selected_title.get(
-                            "relevance_score", 0
-                        )
-                        news["timeliness_score"] = selected_title.get(
-                            "timeliness_score", 0
-                        )
+                        news["relevance_score"] = selected_title.get("relevance_score", 0)
+                        news["timeliness_score"] = selected_title.get("timeliness_score", 0)
                         news["selection_reason"] = selected_title.get("reason", "")
                         matched_news.append(news)
                         break
@@ -374,9 +347,7 @@ class OptimizedNewsProcessor:
                     if response.status == 200:
                         result = await response.json()
                         if "choices" in result and result["choices"]:
-                            podcast_script = result["choices"][0]["message"][
-                                "content"
-                            ].strip()
+                            podcast_script = result["choices"][0]["message"]["content"].strip()
                             logger.info(
                                 f"🔍 {group_name} 群组播客脚本生成成功，长度: {len(podcast_script)} 字符"
                             )
@@ -403,25 +374,19 @@ class OptimizedNewsProcessor:
             logger.info(f"🎯 开始处理 {group_name} 群组新闻...")
 
             # 步骤1: 对标题进行评分和筛选
-            selected_titles = await self.score_news_titles(
-                titles_summary_path, group_name
-            )
+            selected_titles = await self.score_news_titles(titles_summary_path, group_name)
             if not selected_titles:
                 logger.warning(f"⚠️ {group_name} 群组: 未筛选到相关标题")
                 return None, []
 
             # 步骤2: 根据选中的标题查找完整新闻
-            matched_news = await self.find_news_by_titles(
-                selected_titles, all_news_summary_path
-            )
+            matched_news = await self.find_news_by_titles(selected_titles, all_news_summary_path)
             if not matched_news:
                 logger.warning(f"⚠️ {group_name} 群组: 未找到匹配的新闻")
                 return None, []
 
             # 步骤3: 生成播客内容
-            podcast_content = await self.generate_podcast_content(
-                matched_news, group_name
-            )
+            podcast_content = await self.generate_podcast_content(matched_news, group_name)
             if not podcast_content:
                 logger.warning(f"⚠️ {group_name} 群组: 播客内容生成失败")
                 return None, matched_news
