@@ -1,0 +1,14 @@
+[
+  {
+    "name": "User One",
+    "email": "user1@example.com",
+    "keywords": ["AI", "automation", "marketing"],
+    "interests": "AI applications, automation, and marketing technology"
+  },
+  {
+    "name": "User Two",
+    "email": "user2@example.com",
+    "keywords": ["gaming", "esports", "consumer technology"],
+    "interests": "Gaming, esports, and consumer technology"
+  }
+]
